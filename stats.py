@@ -5,16 +5,17 @@
 │                                               │  ███    ███   ███ ▄███▀   ███    ███     ███    ███ ▀█████████▄ │
 │ By: Akhat <as13966@nyu.edu>                   │  ███    ███   ███▐██▀     ███    ███     ███    ███    ▀███▀▀██ │
 │                                               │  ███    ███  ▄█████▀     ▄███▄▄▄▄███▄▄   ███    ███     ███   ▀ │
-│ Created: 2022-04-06 12:21:03 by Akhat         │▀███████████ ▀▀█████▄    ▀▀███▀▀▀▀███▀  ▀███████████     ███     │
-│ Updated: 2022-04-06 22:57:39 by Akhat         │  ███    ███   ███▐██▄     ███    ███     ███    ███     ███     │
+│ Created: 2022-04-22 12:21:03 by Akhat         │▀███████████ ▀▀█████▄    ▀▀███▀▀▀▀███▀  ▀███████████     ███     │
+│ Updated: 2022-05-01 22:57:39 by Akhat         │  ███    ███   ███▐██▄     ███    ███     ███    ███     ███     │
 │                                               │  ███    ███   ███ ▀███▄   ███    ███     ███    ███     ███     │
 │ Copyright (c) 2022 github.com/akhatsuleimenov │  ███    █▀    ███   ▀█▀   ███    █▀      ███    █▀     ▄████▀   │
 │            All rights reserved.               │               ▀                                                 │
 └───────────────────────────────────────────────┴─────────────────────────────────────────────────────────────────┘
 '''
 
-import json
 import csv
+import datetime
+import json
 
 # save the JSON into dictionary
 def extract_data(file_names):
@@ -102,11 +103,40 @@ def get_most_played_day_or_month(list_data, day):
 	dic_time = dict(sorted(dic_time.items(), key=lambda item: item[1], reverse=True)) # sort in reverse order
 	return (dic, dic_time)
 
+def normalize(dic):
+	for key in dic:
+		dic[key] = round(dic[key] / 3600000.0, 2)
+
 def save_to_csv(names, list_dictionaries):
-	for name, d in zip(names, list_dictionaries):
+	labels = ["Artist Name", "Artist Name", "Track Name", "Track Name", 
+			 "Part of the Day", "Part of the Day", "Day of the Month", "Day of the Month",
+			 "Month", "Month"]
+	alternate = ["Times played", "Hours listening"]
+	i = 0
+	for name, d, label in zip(names, list_dictionaries, labels):
 		w = csv.writer(open("csv_files/" + name, "w"))
+		w.writerow([label, alternate[i % 2]])
 		for key, val in d.items():
 			w.writerow([key, val])
+		i += 1
+
+def print_average_time_per_month(most_played_month_time):
+	total_played = 0
+	max_played = 0
+	max_played_month = 0
+	for month in most_played_month_time:
+		total_played += most_played_month_time[month]
+		if most_played_month_time[month] > max_played:
+			max_played = most_played_month_time[month]
+			max_played_month = month
+
+	average = total_played / 12
+	max_played = max_played
+	month = datetime.datetime.strptime(str(max_played_month), "%m").strftime("%B")
+
+	print("Average time per month listening to music: " + str(int(average)) + " hours")
+	print("The top month is " + month + " with " + str(int(max_played)) + " hours listened")
+
 
 def create_dicitonaries(list_data):
 	most_played_artists, most_played_artists_time = get_most_played_item(list_data, 'artistName')
@@ -114,13 +144,18 @@ def create_dicitonaries(list_data):
 	most_played_part_of_the_day, most_played_part_of_the_day_time = get_most_played_part_of_the_day(list_data, 'endTime')
 	most_played_day, most_played_day_time = get_most_played_day_or_month(list_data, True)
 	most_played_month, most_played_month_time = get_most_played_day_or_month(list_data, False)
-
+	
 	names = ["most_played_artists.csv", "most_played_artists_time.csv", "most_played_track.csv", "most_played_track_time.csv", 
 			 "most_played_part_of_the_day.csv", "most_played_part_of_the_day_time.csv", "most_played_day.csv", "most_played_day_time.csv",
 			 "most_played_month.csv", "most_played_month_time.csv"]
 	list_dictionaries = [most_played_artists, most_played_artists_time, most_played_track, most_played_track_time, 
 						 most_played_part_of_the_day, most_played_part_of_the_day_time, most_played_day, most_played_day_time,
 						 most_played_month, most_played_month_time]
+
+	for d in list_dictionaries[1::2]:
+		normalize(d)
+
+	print_average_time_per_month(most_played_month_time)
 
 	return (names, list_dictionaries)
 
